@@ -1,5 +1,4 @@
 defmodule PersistenciaNecesidades do
-
   @ruta Path.expand("../../priv/data/necesidades.txt", __DIR__)
 
   # Guardar todas las necesidades
@@ -36,7 +35,6 @@ defmodule PersistenciaNecesidades do
         {:error, razon} ->
           {:error, "No se pudieron guardar las necesidades: #{inspect(razon)}"}
       end
-
     rescue
       error ->
         {:error, "Error al guardar las necesidades: #{Exception.message(error)}"}
@@ -60,12 +58,11 @@ defmodule PersistenciaNecesidades do
             lineas
             |> Enum.with_index(1)
             |> Enum.reduce_while({:ok, []}, fn {linea, numero}, {:ok, acumuladas} ->
-
               case procesar_linea(linea) do
                 {:ok, necesidad} ->
                   if Enum.any?(acumuladas, fn existente ->
-                    existente.id == necesidad.id
-                  end) do
+                       existente.id == necesidad.id
+                     end) do
                     {:halt, {:error, "Identificador duplicado en la línea #{numero}."}}
                   else
                     {:cont, {:ok, acumuladas ++ [necesidad]}}
@@ -74,7 +71,6 @@ defmodule PersistenciaNecesidades do
                 {:error, razon} ->
                   {:halt, {:error, "Error en la línea #{numero}: #{razon}"}}
               end
-
             end)
 
           resultado
@@ -82,7 +78,6 @@ defmodule PersistenciaNecesidades do
         {:error, razon} ->
           {:error, "No se pudo leer el archivo: #{inspect(razon)}"}
       end
-
     rescue
       error ->
         {:error, "Error al cargar las necesidades: #{Exception.message(error)}"}
@@ -93,8 +88,8 @@ defmodule PersistenciaNecesidades do
   defp procesar_linea(linea) do
     campos = String.split(linea, "|")
 
-    with ["N", id, tipo, descripcion, cantidad, zona,
-          prioridad, responsable, estado, recursos] <- decodificar_campos(campos),
+    with ["N", id, tipo, descripcion, cantidad, zona, prioridad, responsable, estado, recursos] <-
+           decodificar_campos(campos),
          {:ok, cantidad} <- convertir_cantidad(cantidad),
          true <- id != "",
          true <- tipo != "",
@@ -102,14 +97,14 @@ defmodule PersistenciaNecesidades do
          true <- zona != "",
          true <- responsable != "",
          true <- prioridad in ["critica", "alta", "media", "baja"],
-         true <- estado in [
-           "pendiente",
-           "asignada",
-           "en_atencion",
-           "atendida",
-           "cancelada"
-         ] do
-
+         true <-
+           estado in [
+             "pendiente",
+             "asignada",
+             "en_atencion",
+             "atendida",
+             "cancelada"
+           ] do
       necesidad = %Necesidad{
         id: id,
         tipo: tipo,
@@ -128,7 +123,6 @@ defmodule PersistenciaNecesidades do
       }
 
       {:ok, necesidad}
-
     else
       {:error, razon} ->
         {:error, razon}
@@ -168,5 +162,4 @@ defmodule PersistenciaNecesidades do
         {:error, "La cantidad almacenada no es válida."}
     end
   end
-
 end

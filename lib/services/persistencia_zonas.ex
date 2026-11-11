@@ -94,12 +94,14 @@ defmodule PersistenciaZonas do
 
   def cargar do
 
+    IO.inspect(@ruta, label: "RUTA DEL ARCHIVO")
+
     with :ok <- File.mkdir_p(Path.dirname(@ruta)),
          :ok <- crear_archivo_si_no_existe(),
          {:ok, contenido} <- File.read(@ruta) do
 
       contenido
-      |> String.split("\n", trim: true)
+      |> String.split(~r/\r\n|\n|\r/, trim: true)
       |> Enum.with_index(1)
       |> Enum.reduce_while({:ok, []}, fn {linea, numero}, {:ok, zonas} ->
 
@@ -139,6 +141,9 @@ defmodule PersistenciaZonas do
 
   defp procesar_linea(linea, zonas) do
 
+    IO.inspect(linea, label: "LINEA RECIBIDA")
+    IO.inspect(String.split(linea, "|"), label: "CAMPOS SEPARADOS")
+
     case String.split(linea, "|") do
 
       ["Z", codigo, nombre, nivel, personas] ->
@@ -161,7 +166,8 @@ defmodule PersistenciaZonas do
           {:ok, zonas ++ [nueva_zona]}
 
         else
-          _ ->
+          error ->
+            IO.inspect(error, label: "Error interno al procesar la zona")
             {:error, "Registro de zona invalido o codigo duplicado."}
         end
 
