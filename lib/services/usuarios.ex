@@ -1,9 +1,10 @@
+
 defmodule Usuarios do
 
   # Ruta del archivo donde se almacenan los usuarios.
   @ruta Path.expand("../../priv/data/usuarios.txt", __DIR__)
 
-  # Categorías permitidas en el sistema.
+  # Categorías permitidas para los usuarios.
   @categorias [
     "ciudadano",
     "voluntario",
@@ -47,15 +48,25 @@ defmodule Usuarios do
 
           [user, password, name, type, location] ->
 
-            usuario = %Usuario{
-              nombreUsuario: user,
-              contraseña: password,
-              nombre: name,
-              categoria: type,
-              ubicacion: location
-            }
+            categoria = String.downcase(type)
 
-            {:cont, {:ok, [usuario | usuarios]}}
+            if categoria in @categorias do
+
+              usuario = %Usuario{
+                nombreUsuario: user,
+                contraseña: password,
+                nombre: name,
+                categoria: categoria,
+                ubicacion: location
+              }
+
+              {:cont, {:ok, [usuario | usuarios]}}
+
+            else
+
+              {:halt, {:error, "Categoría no válida en usuarios.txt: #{type}"}}
+
+            end
 
           _ ->
             {:halt, {:error, "Línea incorrecta en usuarios.txt: #{linea}"}}
@@ -65,11 +76,13 @@ defmodule Usuarios do
       end)
 
     case resultado do
+
       {:ok, usuarios} ->
         {:ok, Enum.reverse(usuarios)}
 
       {:error, razon} ->
         {:error, razon}
+
     end
 
   end
@@ -80,30 +93,33 @@ defmodule Usuarios do
 
   def validar(usuarios, nombre_usuario, contraseña) do
 
-    case buscar_usuarios(usuarios, nombre_usuario) do
+    # Comprobar que las credenciales no estén vacías.
+    if String.trim(nombre_usuario) == "" or String.trim(contraseña) == "" do
 
-      nil ->
-        IO.puts("El usuario no está registrado. Iniciando proceso de registro...")
+      {:error, "El usuario y la contraseña son obligatorios."}
 
-        registrar_usuario(
-          usuarios,
-          nombre_usuario,
-          contraseña
-        )
+    else
 
-      usuario ->
+      case buscar_usuarios(usuarios, nombre_usuario) do
 
-        if usuario.contraseña == contraseña do
+        nil ->
+          {:error, "El usuario no está registrado."}
 
-          IO.puts("Inicio de sesión exitoso.")
+        usuario ->
 
-          {:ok, usuario}
+          if usuario.contraseña == contraseña do
 
-        else
+            IO.puts("\nInicio de sesión exitoso.")
 
-          {:error, "La contraseña no coincide."}
+            {:ok, usuario}
 
-        end
+          else
+
+            {:error, "La contraseña no coincide."}
+
+          end
+
+      end
 
     end
 
@@ -115,8 +131,11 @@ defmodule Usuarios do
 
   def registrar_usuario(usuarios, nombre_usuario, contraseña) do
 
-    # Comprobar que el nombre de usuario no esté vacío.
-    if String.trim(nombre_usuario) == "" or String.trim(contraseña) == "" do
+    nombre_usuario = String.trim(nombre_usuario)
+    contraseña = String.trim(contraseña)
+
+    # Comprobar que las credenciales no estén vacías.
+    if nombre_usuario == "" or contraseña == "" do
 
       {:error, "El usuario y la contraseña no pueden estar vacíos."}
 
@@ -127,109 +146,74 @@ defmodule Usuarios do
 
         nil ->
 
-          IO.puts("""
-          Se realizará un registro de usuario con los siguientes datos:
+          IO.puts("\n--- DATOS DEL REGISTRO ---")
+          IO.puts("Usuario: #{nombre_usuario}")
 
-          Usuario: #{nombre_usuario}
-          """)
-
-          eleccion =
-            IO.gets("""
-            ¿Desea continuar con los datos o cambiar alguno?
-            1. Continuar
-            2. Cambiar credenciales
-            """)
+          nombre =
+            IO.gets("Ingrese su nombre completo: ")
             |> String.trim()
 
-          case eleccion do
+          ubicacion =
+            IO.gets("Ingrese su ubicación: ")
+            |> String.trim()
 
-            "1" ->
+          # Determinar el rol del usuario.
+          categoria =
+            if usuarios == [] do
 
-              nombre =
-                IO.gets("Ingrese su nombre: ")
-                |> String.trim()
+              "administrador"
 
-              ubicacion =
-                IO.gets("Ingrese su ubicación: ")
-                |> String.trim()
+            else
 
-              categoria =
-                IO.gets("Ingrese su categoría: ")
-                |> String.trim()
-                |> String.downcase()
+              seleccionar_categoria()
 
-              # Validar que los campos no estén vacíos.
-              if nombre == "" or ubicacion == "" do
+            end
 
-                IO.puts("El nombre y la ubicación son obligatorios.")
+          # Validar los datos personales y el rol.
+          if nombre == "" or ubicacion == "" do
 
-                {:error, "Datos personales incompletos."}
+            {:error, "El nombre y la ubicación son obligatorios."}
 
-              # Validar la categoría.
-              else
+          else
 
-                if categoria in @categorias do
+            if categoria == nil do
 
-                  nuevo_usuario = %Usuario{
-                    nombreUsuario: nombre_usuario,
-                    contraseña: contraseña,
-                    nombre: nombre,
-                    categoria: categoria,
-                    ubicacion: ubicacion
-                  }
+              {:error, "No se seleccionó una categoría válida."}
 
-                  # Guardar el usuario en el archivo.
-                  datos =
-                    "#{nombre_usuario};#{contraseña};#{nombre};#{categoria};#{ubicacion}\n"
+            else
 
-                  case File.write(@ruta, datos, [:append]) do
+              # Crear el nuevo usuario.
+              nuevo_usuario = %Usuario{
+                nombreUsuario: nombre_usuario,
+                contraseña: contraseña,
+                nombre: nombre,
+                categoria: categoria,
+                ubicacion: ubicacion
+              }
 
-                    :ok ->
+              # Preparar los datos para guardarlos.
+              datos =
+                "#{nombre_usuario};#{contraseña};#{nombre};#{categoria};#{ubicacion}\n"
 
-                      IO.puts("Usuario registrado correctamente.")
+              # Guardar el usuario en el archivo.
+              case File.write(@ruta, datos, [:append]) do
 
-                      nuevos_usuarios = [nuevo_usuario | usuarios]
+                :ok ->
 
-                      {:ok, nuevo_usuario, nuevos_usuarios}
+                  IO.puts("\nUsuario registrado correctamente.")
+                  IO.puts("Rol asignado: #{String.upcase(categoria)}")
 
-                    {:error, razon} ->
+                  nuevos_usuarios = usuarios ++ [nuevo_usuario]
 
-                      {:error, "No se pudo guardar el usuario: #{inspect(razon)}"}
+                  {:ok, nuevo_usuario, nuevos_usuarios}
 
-                  end
+                {:error, razon} ->
 
-                else
-
-                  IO.puts("Categoría no válida.")
-                  IO.puts("Categorías permitidas: #{Enum.join(@categorias, ", ")}")
-
-                  {:error, "Categoría no permitida."}
-
-                end
+                  {:error, "No se pudo guardar el usuario: #{inspect(razon)}"}
 
               end
 
-            "2" ->
-
-              nuevo_usuario =
-                IO.gets("Ingrese el nuevo nombre de usuario: ")
-                |> String.trim()
-
-              nueva_contraseña =
-                IO.gets("Ingrese la nueva contraseña: ")
-                |> String.trim()
-
-              registrar_usuario(
-                usuarios,
-                nuevo_usuario,
-                nueva_contraseña
-              )
-
-            _ ->
-
-              IO.puts("Opción inválida.")
-
-              {:error, "Opción de registro no válida."}
+            end
 
           end
 
@@ -243,29 +227,38 @@ defmodule Usuarios do
 
   end
 
-end
+  # --------------------------------------------------
+  # SELECCIONAR CATEGORÍA
+  # --------------------------------------------------
 
-# --------------------------------------------------
-# PRUEBAS
-# --------------------------------------------------
+  defp seleccionar_categoria() do
 
-case Usuarios.cargar_usuarios() do
+    IO.puts("\nSeleccione el rol que desea utilizar:")
+    IO.puts("1. Ciudadano")
+    IO.puts("2. Voluntario")
+    IO.puts("3. Coordinador")
 
-  {:ok, usuarios} ->
+    opcion =
+      IO.gets("Seleccione una opción: ")
+      |> String.trim()
 
-    IO.inspect(usuarios, label: "Usuarios cargados")
+    case opcion do
 
-    resultado =
-      Usuarios.validar(
-        usuarios,
-        "kael",
-        "1234"
-      )
+      "1" ->
+        "ciudadano"
 
-    IO.inspect(resultado, label: "Resultado")
+      "2" ->
+        "voluntario"
 
-  {:error, razon} ->
+      "3" ->
+        "coordinador"
 
-    IO.inspect(razon, label: "Error al cargar usuarios")
+      _ ->
+        IO.puts("\nOpción no válida.")
+        nil
+
+    end
+
+  end
 
 end

@@ -1,12 +1,11 @@
 defmodule Persona do
   defstruct [
-    :id,
+    :codigo,
     :nombre,
-    :documento,
     :edad,
     :zona,
-    :estado,
-    :albergue,
-    historial_estados: []
+    estado: "afectada",
+    albergue: nil,
+    historial: []
   ]
 end

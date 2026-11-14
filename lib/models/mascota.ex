@@ -1,6 +1,6 @@
 defmodule Mascota do
   defstruct [
-    :id,
+    :codigo,
     :tipo_reporte,
     :especie,
     :nombre,
@@ -9,7 +9,7 @@ defmodule Mascota do
     :tamano,
     :zona,
     :contacto,
-    :estado,
-    :coincidencia
+    estado: "activa",
+    coincidencia: nil
   ]
 end

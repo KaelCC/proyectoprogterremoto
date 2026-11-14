@@ -1,10 +1,13 @@
+
 defmodule Mensaje do
+
   defstruct [
-    :id,
+    :codigo,
     :fecha,
     :remitente,
     :destinatario,
     :contenido,
-    estado: :pendiente
+    estado: "pendiente"
   ]
+
 end
