@@ -1,4 +1,3 @@
-
 defmodule InventarioServer do
   use GenServer
 
@@ -27,7 +26,6 @@ defmodule InventarioServer do
   def init(:ok) do
     with {:ok, recursos} <- PersistenciaRecursos.cargar(),
          {:ok, necesidades} <- PersistenciaNecesidades.cargar() do
-
       estado = %{
         recursos: recursos,
         necesidades: necesidades
@@ -69,7 +67,6 @@ defmodule InventarioServer do
         _from,
         estado
       ) do
-
     resultado =
       Recursos.asignar_recurso(
         estado.recursos,
@@ -81,7 +78,6 @@ defmodule InventarioServer do
 
     case resultado do
       {:ok, recursos_actualizados, necesidades_actualizadas} ->
-
         nuevo_estado = %{
           recursos: recursos_actualizados,
           necesidades: necesidades_actualizadas
@@ -109,21 +105,17 @@ defmodule InventarioServer do
 
   @impl true
   def handle_call(:recargar, _from, estado) do
-
     with {:ok, recursos} <- PersistenciaRecursos.cargar(),
          {:ok, necesidades} <- PersistenciaNecesidades.cargar() do
-
       nuevo_estado = %{
         recursos: recursos,
         necesidades: necesidades
       }
 
       {:reply, {:ok, nuevo_estado}, nuevo_estado}
-
     else
       {:error, razon} ->
         {:reply, {:error, razon}, estado}
     end
   end
-
 end
